@@ -24,8 +24,9 @@ def align_pupils(image, face_cascade, eye_cascade):
             center = (int(left_eye_center[0]), int(left_eye_center[1]))
             angle = np.arctan((right_eye_center[1] - left_eye_center[1]) / (right_eye_center[0] - left_eye_center[0])) * 180 / np.pi
             rot_mat = cv2.getRotationMatrix2D(center, angle, 1.0)
-            image = cv2.warpAffine(np.array(image), rot_mat, (image.width, image.height))
+            image = cv2.warpAffine(np.array(image), rot_mat, (image.shape[0], image.shape[1]))
             image = Image.fromarray(image)
+            return image
     return image
 
 if __name__ == '__main__':
@@ -47,15 +48,26 @@ if __name__ == '__main__':
     face_cascade = cv2.CascadeClassifier(cascades_root + 'haarcascade_frontalface_default.xml')
     eye_cascade = cv2.CascadeClassifier(cascades_root + 'haarcascade_eye.xml')
     images = []
+
+    # Iterate through all the images in the folder
+    for image_name in os.listdir(args.input_folder):
+        # Load the image
+        image = cv2.imread(os.path.join(args.input_folder, image_name))
+        align_pupils(image, face_cascade, eye_cascade)
+        cv2.imwrite(os.path.join(args.output_folder, image_name), image)
+        images.append(image)
+
     max_width = 0
     max_height = 0
 
     # Iterate through all the images in the folder
     for image in images:
         image = align_pupils(image, face_cascade, eye_cascade)
-        max_height = max(max_height, image.shape[0])
-        max_width = max(max_width, image.shape[1])
+        print('image.size', image.size)
+        max_height = max(max_height, image.size[1])
+        max_width = max(max_width, image.size[0])
     for i in range(len(images)):
+        print("appending iamge ", i)
         images.append(cv2.resize(images[i], (max_width, max_height)))
 
     # Creating the video file

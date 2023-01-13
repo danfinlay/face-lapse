@@ -55,3 +55,33 @@ def align_pupils(image, face_detector, eye_cascade):
                 # Rotate the image
                 result = cv2.warpAffine(face_roi, rot_mat, (face_roi.shape[1], face_roi.shape[0]), flags=cv2.INTER_LINEAR)
                 face_roi = result
+
+if __name__ == '__main__':
+    # Create the argument parser
+    parser = argparse.ArgumentParser()
+
+    # Add the arguments
+    parser.add_argument('-i', '--input_folder', type=str, required=True, help='Path to the folder containing the face images')
+    parser.add_argument('-o', '--output_folder', type=str, required=True, help='Path to the folder where the aligned images will be saved')
+    parser.add_argument('-m', '--model', type=str, required=True, help='Path to the face detection model')
+    parser.add_argument('-c', '--cascade', type=str, required=True, help='Path to the eye detection cascade')
+    parser.add_argument('-v', '--video_output', type=str, required=True, help='Path to the output video file')
+    parser.add_argument('-fps', '--frames_per_second', type=float, default=0.2, help='Number of seconds per picture in the output video')
+
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Load the face detection and alignment model
+    face_detector = cv2.dnn.readNetFromCaffe(args.model + '.prototxt', args.model + '.caffemodel')
+    eye_cascade = cv2.CascadeClassifier(args.cascade)
+    images = []
+    # Iterate through all the images in the folder
+    for image_name in os.listdir(args.input_folder):
+        # Load the image
+        image = cv2.imread(os.path.join(args.input_folder, image_name))
+        align_pupils(image, face_detector, eye_cascade)
+        cv2.imwrite(os.path.join(args.output_folder, image_name), image)
+        images.append(image)
+    # Creating the video file
+    image_clip = ImageSequenceClip(images, fps=1/args.frames_per_second)
+    image_clip.write_videofile(args.video_output)

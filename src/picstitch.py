@@ -4,7 +4,7 @@ import argparse
 
 def image_folder_to_video(folder_path, output_path):
     # Get the list of image filenames
-    filenames = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('.jpg')]
+    filenames = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith('.jpg')]
     filenames.sort()  # Sort the filenames
 
     # Get the dimensions of the first image

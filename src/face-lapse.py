@@ -3,24 +3,29 @@ import cv2
 import os
 import math
 import numpy as np
-from moviepy.editor import ImageSequenceClip
+import imageio.v3 as iio
 from PIL import Image
 
+def save_movie(image_list, filename, fps):
+    iio.imwrite(filename, image_list, fps=fps)
+
 def align_pupils(image, face_cascade, eye_cascade):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-    (x, y, w, h) = faces[0]
-    roi_gray = gray[y:y+h, x:x+w]
-    roi_color = image[y:y+h, x:x+w]
-    eyes = eye_cascade.detectMultiScale(roi_gray)
-    if len(eyes) == 2:
-        left_eye = eyes[0] if eyes[0][0] < eyes[1][0] else eyes[1]
-        right_eye = eyes[1] if eyes[0][0] < eyes[1][0] else eyes[0]
-        left_eye_center = (x + left_eye[0] + int(left_eye[2]/2), y + left_eye[1] + int(left_eye[3]/2))
-        right_eye_center = (x + right_eye[0] + int(right_eye[2]/2), y + right_eye[1] + int(right_eye[3]/2))
-        angle = np.arctan((right_eye_center[1] - left_eye_center[1]) / (right_eye_center[0] - left_eye_center[0])) * 180 / np.pi
-        rot_mat = cv2.getRotationMatrix2D((left_eye_center[0], left_eye_center[1]), angle, 1.0)
-        image = cv2.warpAffine(image, rot_mat, (image.shape[1], image.shape[0]))
+    for (x, y, w, h) in faces:
+        roi_gray = gray[y:y+h, x:x+w]
+        roi_color = image[y:y+h, x:x+w]
+        eyes = eye_cascade.detectMultiScale(roi_gray)
+        if len(eyes) == 2:
+            left_eye = eyes[0] if eyes[0][0] < eyes[1][0] else eyes[1]
+            right_eye = eyes[1] if eyes[0][0] < eyes[1][0] else eyes[0]
+            left_eye_center = (x + left_eye[0] + int(left_eye[2]/2), y + left_eye[1] + int(left_eye[3]/2))
+            right_eye_center = (x + right_eye[0] + int(right_eye[2]/2), y + right_eye[1] + int(right_eye[3]/2))
+            center = (int(left_eye_center[0]), int(left_eye_center[1]))
+            angle = np.arctan((right_eye_center[1] - left_eye_center[1]) / (right_eye_center[0] - left_eye_center[0])) * 180 / np.pi
+            rot_mat = cv2.getRotationMatrix2D(center, angle, 1.0)
+            image = cv2.warpAffine(np.array(image), rot_mat, (image.width, image.height))
+            image = Image.fromarray(image)
     return image
 
 if __name__ == '__main__':
@@ -32,7 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output_folder', type=str, required=True, help='Path to the folder where the aligned images will be saved')
     parser.add_argument('-c', '--opencv_folder', type=str, required=True, help='Path to the folder where opencv is installed.')
     parser.add_argument('-v', '--video_output', type=str, required=True, help='Path to the output video file')
-    parser.add_argument('-fps', '--frames_per_second', type=float, default=0.2, help='Number of seconds per picture in the output video')
+    parser.add_argument('-f', '--frames_per_second', type=float, default=0.2, help='Number of seconds per picture in the output video')
 
     # Parse the arguments
     args = parser.parse_args()
@@ -46,17 +51,12 @@ if __name__ == '__main__':
     max_height = 0
 
     # Iterate through all the images in the folder
-    for image_name in os.listdir(args.input_folder):
-        # Load the image
-        image = cv2.imread(os.path.join(args.input_folder, image_name))
-        align_pupils(image, face_cascade, eye_cascade)
-        max_height = max(max_height,image.shape[0])
-        max_width = max(max_width,image.shape[1])
-        #resizing image to max size
-        image = cv2.resize(image, (max_width, max_height))
-        #Convert numpy array to PIL image
-        image = Image.fromarray(image)
-        images.append(image)
+    for image in images:
+        image = align_pupils(image, face_cascade, eye_cascade)
+        max_height = max(max_height, image.shape[0])
+        max_width = max(max_width, image.shape[1])
+    for i in range(len(images)):
+        images.append(cv2.resize(images[i], (max_width, max_height)))
+
     # Creating the video file
-    image_clip = ImageSequenceClip(images, fps=1/args.frames_per_second)
-    image_clip.write_videofile(args.video_output)
+    save_movie(images, args.video_output, args.frames_per_second)

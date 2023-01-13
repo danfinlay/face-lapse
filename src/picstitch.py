@@ -1,5 +1,6 @@
 import cv2
 import os
+import argparse
 
 def image_folder_to_video(folder_path, output_path):
     # Get the list of image filenames
@@ -22,3 +23,17 @@ def image_folder_to_video(folder_path, output_path):
 
     # Release the video writer object
     out.release()
+
+def main():
+    parser = argparse.ArgumentParser(description='Convert a folder of images to a video.')
+    parser.add_argument('input_folder', metavar='input_folder', type=str,
+                        help='The path to the folder containing the input images.')
+    parser.add_argument('output_video', metavar='output_video', type=str,
+                        help='The path to the output video file.')
+    args = parser.parse_args()
+    input_folder = args.input_folder
+    output_video = args.output_video
+    image_folder_to_video(input_folder, output_video)
+
+if __name__ == "__main__":
+    main()

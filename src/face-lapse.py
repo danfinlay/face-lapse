@@ -63,23 +63,21 @@ if __name__ == '__main__':
     # Add the arguments
     parser.add_argument('-i', '--input_folder', type=str, required=True, help='Path to the folder containing the face images')
     parser.add_argument('-o', '--output_folder', type=str, required=True, help='Path to the folder where the aligned images will be saved')
-    parser.add_argument('-m', '--model', type=str, required=True, help='Path to the face detection model')
-    parser.add_argument('-c', '--cascade', type=str, required=True, help='Path to the eye detection cascade')
     parser.add_argument('-v', '--video_output', type=str, required=True, help='Path to the output video file')
     parser.add_argument('-fps', '--frames_per_second', type=float, default=0.2, help='Number of seconds per picture in the output video')
 
     # Parse the arguments
     args = parser.parse_args()
 
-    # Load the face detection and alignment model
-    face_detector = cv2.dnn.readNetFromCaffe(args.model + '.prototxt', args.model + '.caffemodel')
-    eye_cascade = cv2.CascadeClassifier(args.cascade)
+    # Load the face and eye detection cascades
+    face_cascade = cv2.CascadeClassifier('/root/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
+    eye_cascade = cv2.CascadeClassifier('/root/opencv/data/haarcascades/haarcascade_eye.xml')
     images = []
     # Iterate through all the images in the folder
     for image_name in os.listdir(args.input_folder):
         # Load the image
         image = cv2.imread(os.path.join(args.input_folder, image_name))
-        align_pupils(image, face_detector, eye_cascade)
+        align_pupils(image, face_cascade, eye_cascade)
         cv2.imwrite(os.path.join(args.output_folder, image_name), image)
         images.append(image)
     # Creating the video file

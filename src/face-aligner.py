@@ -2,7 +2,7 @@ import cv2
 import os
 
 # Path to the folder containing the face images
-face_folder_path = 'path/to/face/images'
+face_folder_path = './input'
 
 # Load the face detection and alignment model
 face_detector = cv2.dnn.readNetFromCaffe('path/to/face_detection_model.prototxt', 'path/to/face_detection_model.caffemodel')

@@ -7,6 +7,7 @@ A set of scripts for making a timelapse of a person from a series of photographs
 - Take a folder of photographs
 - Line up their pupils
 - Stitch them into a video file
+- Have chatGPT write as much of the code as possible (It did! Kinda!)
 
 ## Status
 

@@ -21,12 +21,15 @@ def align_pupils(image, face_cascade, eye_cascade):
             right_eye = eyes[1]
             if left_eye[0] > right_eye[0]:
                 left_eye, right_eye = right_eye, left_eye
+
             # Get the center of the eyes
             left_eye_center = (left_eye[0] + left_eye[2] // 2, left_eye[1] + left_eye[3] // 2)
             right_eye_center = (right_eye[0] + right_eye[2] // 2, right_eye[1] + right_eye[3] // 2)
+
             # Get the angle between the eyes
             dy = right_eye_center[1] - left_eye_center[1]
-            dx = right_eye_center[0] - left_eye_center
+            dx = right_eye_center[0] - left_eye_center[0]
+            angle = math.atan2(dy, dx) * 180.0 / math.pi
 
             # Get the rotation matrix
             rot_mat = cv2.getRotationMatrix2D(left_eye_center, angle, 1.0)

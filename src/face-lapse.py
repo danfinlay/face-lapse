@@ -6,28 +6,159 @@ import numpy as np
 import imageio.v3 as iio
 from PIL import Image
 
+target_width=3072
+target_height=2304
+left_eye_pos=(1211, 818)
+right_eye_pos=(1825, 818)
+target_eye_distance=1825-1211
+
 def save_movie(image_list, filename, fps):
     iio.imwrite(filename, image_list, fps=fps)
 
-def align_pupils(image, face_cascade, eye_cascade):
-    gray = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-    for (x, y, w, h) in faces:
-        roi_gray = gray[y:y+h, x:x+w]
-        roi_color = image[y:y+h, x:x+w]
-        eyes = eye_cascade.detectMultiScale(roi_gray)
-        if len(eyes) == 2:
-            left_eye = eyes[0] if eyes[0][0] < eyes[1][0] else eyes[1]
-            right_eye = eyes[1] if eyes[0][0] < eyes[1][0] else eyes[0]
-            left_eye_center = (x + left_eye[0] + int(left_eye[2]/2), y + left_eye[1] + int(left_eye[3]/2))
-            right_eye_center = (x + right_eye[0] + int(right_eye[2]/2), y + right_eye[1] + int(right_eye[3]/2))
-            center = (int(left_eye_center[0]), int(left_eye_center[1]))
-            angle = np.arctan((right_eye_center[1] - left_eye_center[1]) / (right_eye_center[0] - left_eye_center[0])) * 180 / np.pi
-            rot_mat = cv2.getRotationMatrix2D(center, angle, 1.0)
-            image = cv2.warpAffine(np.array(image), rot_mat, (image.shape[0], image.shape[1]))
-            image = Image.fromarray(image)
-            return image
-    return image
+def rotate_and_scale(images, face_cascade, eye_cascade):
+    lined_up_images = []
+    for image in images:
+        # Split the image into its 3 channels
+        b, g, r = cv2.split(image)
+        
+        # Convert the image to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Detect faces in the image
+        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+        
+        # Check if any faces were detected
+        if len(faces) > 0:
+            # Get the coordinates of the first face
+            x, y, w, h = faces[0]
+            
+            # Detect eyes in the face region
+            eyes = eye_cascade.detectMultiScale(gray[y:y+h, x:x+w])
+            
+            # Check if any eyes were detected
+            if len(eyes) > 1:
+                # Get the coordinates of the first eye
+                ex1, ey1, ew1, eh1 = eyes[0]
+                ex2, ey2, ew2, eh2 = eyes[1]
+
+                # Get the center of each eye
+                center_x1 = ex1 + (ew1 / 2)
+                center_y1 = ey1 + (eh1 / 2)
+                center_x2 = ex2 + (ew2 / 2)
+                center_y2 = ey2 + (eh2 / 2)
+                
+                # Calculate the angle between the eyes
+                angle = math.atan2(ey2 - ey1, ex2 - ex1)
+
+                # Calculate the distance between the eyes
+                distance = math.sqrt((center_x2 - center_x1)**2 + (center_y2 - center_y1)**2)
+                scale = target_eye_distance / distance
+                
+                # Rotate each channel by the calculated angle
+                rows, cols = gray.shape
+                M = cv2.getRotationMatrix2D((cols/2,rows/2), angle, scale)
+                b = cv2.warpAffine(b, M, (cols, rows))
+                g = cv2.warpAffine(g, M, (cols, rows))
+                r = cv2.warpAffine(r, M, (cols, rows))
+            else:
+                # If only one eye is detected, don't rotate the image
+                pass
+        else:
+            # If no face is detected, don't rotate the image
+            pass
+        
+        # Merge the channels back together
+        lined_up_image = cv2.merge((b, g, r))
+        lined_up_images.append(lined_up_image)
+    
+    return lined_up_images
+
+def line_up(images, face_cascade, eye_cascade):
+    lined_up_images = []
+    for image in images:
+        # Split the image into its 3 channels
+        b, g, r = cv2.split(image)
+        
+        # Convert the image to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Detect faces in the image
+        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+        
+        # Check if any faces were detected
+        if len(faces) > 0:
+            # Get the coordinates of the first face
+            x, y, w, h = faces[0]
+            
+            # Detect eyes in the face region
+            eyes = eye_cascade.detectMultiScale(gray[y:y+h, x:x+w])
+            
+            # Check if any eyes were detected
+            if len(eyes) > 1:
+                # Get the coordinates of the first eye
+                ex1, ey1, ew1, eh1 = eyes[0]
+
+                # Get the center of the left eye
+                center_x1 = ex1 + (ew1 / 2)
+                center_y1 = ey1 + (eh1 / 2)
+
+                # Calculate the movement required
+                translate_x = center_x1 - left_eye_pos[0] 
+                translate_y = center_y1 - left_eye_pos[1] 
+
+                center = (image.shape[1]/2, image.shape[0]/2) # center of the image
+
+                M = np.float32([[1, 0, x], [0, 1, y]])
+
+                # Move each channel by the calculated translation
+                rows, cols = gray.shape
+                b = cv2.warpAffine(b, M, (cols, rows))
+                g = cv2.warpAffine(g, M, (cols, rows))
+                r = cv2.warpAffine(r, M, (cols, rows))
+            else:
+                # If only one eye is detected, don't rotate the image
+                pass
+        else:
+            # If no face is detected, don't rotate the image
+            pass
+        
+        # Merge the channels back together
+        lined_up_image = cv2.merge((b, g, r))
+        lined_up_images.append(lined_up_image)
+    
+    return lined_up_images
+
+def crop_images(images):
+    # Find the smallest image
+    smallest_image = min(images, key=lambda x: x.shape[0]*x.shape[1])
+    height, width = smallest_image.shape[:2]
+    print("Smallest image height:", height)
+    print("Smallest image width:", width)
+    
+    # Crop all images to the size of the smallest image
+    cropped_images = []
+    for image in images:
+        h, w = image.shape[:2]
+        if h>height or w>width:
+            center = (0, 0)
+            cropped = cropped_images.append(cv2.getRectSubPix(image, (width, height), center))
+            cropped_images.append(cropped)
+
+        else:
+            print("Correct size, no trim")
+            cropped_images.append(image)
+    return cropped_images
+
+def print_dimensions(images):
+    for image in images:
+        height, width = image.shape[:2]
+        print("Image dimensions: {}x{}".format(width, height))
+
+def save_images(folder_path, images, file_extension = 'jpg'):
+    for i, image in enumerate(images):
+        file_name = os.path.join(folder_path, str(i) + '.' + file_extension)
+        cv2.imwrite(file_name, image)
+        print("Image {} saved successfully to {}".format(i, file_name))
 
 if __name__ == '__main__':
     # Create the argument parser
@@ -35,10 +166,10 @@ if __name__ == '__main__':
 
     # Add the arguments
     parser.add_argument('-i', '--input_folder', type=str, required=True, help='Path to the folder containing the face images')
-    parser.add_argument('-o', '--output_folder', type=str, required=True, help='Path to the folder where the aligned images will be saved')
     parser.add_argument('-c', '--opencv_folder', type=str, required=True, help='Path to the folder where opencv is installed.')
     parser.add_argument('-v', '--video_output', type=str, required=True, help='Path to the output video file')
     parser.add_argument('-f', '--frames_per_second', type=float, default=0.2, help='Number of seconds per picture in the output video')
+    parser.add_argument('-o', '--output_folder', type=str, required=False, help='Path to save processed files in')
 
     # Parse the arguments
     args = parser.parse_args()
@@ -53,22 +184,16 @@ if __name__ == '__main__':
     for image_name in os.listdir(args.input_folder):
         # Load the image
         image = cv2.imread(os.path.join(args.input_folder, image_name))
-        align_pupils(image, face_cascade, eye_cascade)
-        cv2.imwrite(os.path.join(args.output_folder, image_name), image)
         images.append(image)
 
-    max_width = 0
-    max_height = 0
+    images = rotate_and_scale(images, face_cascade, eye_cascade)
+    images = line_up(images, face_cascade, eye_cascade)
+    images = crop_images(images)
+    images = [im for im in images if isinstance(im, (np.ndarray, Image.Image))]
+    print_dimensions(images)
 
-    # Iterate through all the images in the folder
-    for image in images:
-        image = align_pupils(image, face_cascade, eye_cascade)
-        print('image.size', image.size)
-        max_height = max(max_height, image.size[1])
-        max_width = max(max_width, image.size[0])
-    for i in range(len(images)):
-        print("appending iamge ", i)
-        images.append(cv2.resize(images[i], (max_width, max_height)))
+    if args.output_folder:
+        save_images(args.output_folder, images)
 
     # Creating the video file
     save_movie(images, args.video_output, args.frames_per_second)

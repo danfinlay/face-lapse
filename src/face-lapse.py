@@ -63,6 +63,7 @@ if __name__ == '__main__':
     # Add the arguments
     parser.add_argument('-i', '--input_folder', type=str, required=True, help='Path to the folder containing the face images')
     parser.add_argument('-o', '--output_folder', type=str, required=True, help='Path to the folder where the aligned images will be saved')
+    parser.add_argument('-c', '--opencv_folder', type=str, required=True, help='Path to the folder where opencv is installed.')
     parser.add_argument('-v', '--video_output', type=str, required=True, help='Path to the output video file')
     parser.add_argument('-fps', '--frames_per_second', type=float, default=0.2, help='Number of seconds per picture in the output video')
 
@@ -70,8 +71,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Load the face and eye detection cascades
-    face_cascade = cv2.CascadeClassifier('/root/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
-    eye_cascade = cv2.CascadeClassifier('/root/opencv/data/haarcascades/haarcascade_eye.xml')
+    cascades_root = args._opencv_folder + '/data/haarcascades/'
+    face_cascade = cv2.CascadeClassifier(cascades_root + 'haarcascade_frontalface_default.xml')
+    eye_cascade = cv2.CascadeClassifier(cascades_root + 'haarcascade_eye.xml')
     images = []
     # Iterate through all the images in the folder
     for image_name in os.listdir(args.input_folder):

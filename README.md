@@ -12,6 +12,16 @@ A set of scripts for making a timelapse of a person from a series of photographs
 
 The lining up isn't perfect, but it kinda works!
 
+## Installation
+
+Requires a number of modules, you'll need to install them how you like, I'm not a big pythonista so I don't know how you do yours. I use conda whenever I can and fall back to pip for what I can't conda:
+
+- argparse
+- cv2 (opencv2)
+- numpy
+- imageio.v3
+- PIL
+
 ## Usage
 
 python src/face-lapse.py -h

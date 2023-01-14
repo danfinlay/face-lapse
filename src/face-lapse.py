@@ -47,7 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('-fps', '--frames_per_second', type=float, default=0.2, help='Number of seconds per picture in the output video')
 
     # Parse the arguments
-                angle = math.atan2(dy, dx) * 180.0 / math.pi    args = parser.parse_args()
+    args = parser.parse_args()
 
     # Load the face and eye detection cascades
     cascades_root = args.opencv_folder + '/data/haarcascades/'

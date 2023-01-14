@@ -4,7 +4,7 @@ import os
 import math
 import numpy as np
 from moviepy.editor import ImageSequenceClip
-from imageio_ffmpeg import numpy_array_to_image
+from PIL import Image
 
 def align_pupils(image, face_cascade, eye_cascade):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -60,6 +60,7 @@ if __name__ == '__main__':
     images = []
     max_width = 0
     max_height = 0
+    
     # Iterate through all the images in the folder
     for image_name in os.listdir(args.input_folder):
         # Load the image
@@ -69,8 +70,8 @@ if __name__ == '__main__':
         max_width = max(max_width,image.shape[1])
         #resizing image to max size
         image = cv2.resize(image, (max_width, max_height))
-        cv2.imwrite(os.path.join(args.output_folder, image_name), image)
-        image = numpy_array_to_image(image)
+        #Convert numpy array to PIL image
+        image = Image.fromarray(image)
         images.append(image)
     # Creating the video file
     image_clip = ImageSequenceClip(images, fps=1/args.frames_per_second)

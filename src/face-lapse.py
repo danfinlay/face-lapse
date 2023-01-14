@@ -19,7 +19,7 @@ def rotate_and_scale(images, face_cascade, eye_cascade):
     lined_up_images = []
     for image in images:
         # Split the image into its 3 channels
-        b, g, r = cv2.split(image)
+        r,g,b = cv2.split(image)
         
         # Convert the image to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -68,7 +68,7 @@ def rotate_and_scale(images, face_cascade, eye_cascade):
             pass
         
         # Merge the channels back together
-        lined_up_image = cv2.merge((b, g, r))
+        lined_up_image = cv2.merge((r, g, b))
         lined_up_images.append(lined_up_image)
     
     return lined_up_images
@@ -97,21 +97,26 @@ def line_up(images, face_cascade, eye_cascade):
             if len(eyes) > 1:
                 # Get the coordinates of the first eye
                 ex1, ey1, ew1, eh1 = eyes[0]
+                ex2, ey2, ew2, eh2 = eyes[1]
 
-                # Get the center of the left eye
+                # Get the center of each eye
                 center_x1 = ex1 + (ew1 / 2)
                 center_y1 = ey1 + (eh1 / 2)
+                center_x2 = ex2 + (ew2 / 2)
+                center_y2 = ey2 + (eh2 / 2)
+                
+                # Calculate the angle between the eyes
+                angle = math.atan2(ey2 - ey1, ex2 - ex1)
 
-                # Calculate the movement required
-                translate_x = center_x1 - left_eye_pos[0] 
-                translate_y = center_y1 - left_eye_pos[1] 
+                # Get the current distance between the eyes
+                current_eye_distance = math.sqrt((center_x2 - center_x1)**2 + (center_y2 - center_y1)**2)
 
-                center = (image.shape[1]/2, image.shape[0]/2) # center of the image
-
-                M = np.float32([[1, 0, x], [0, 1, y]])
-
-                # Move each channel by the calculated translation
+                # Calculate the scale factor to scale the image to the target eye distance
+                scale = target_eye_distance / current_eye_distance
+                
+                # Scale and rotate each channel
                 rows, cols = gray.shape
+                M = cv2.getRotationMatrix2D((cols/2,rows/2), angle, scale)
                 b = cv2.warpAffine(b, M, (cols, rows))
                 g = cv2.warpAffine(g, M, (cols, rows))
                 r = cv2.warpAffine(r, M, (cols, rows))
@@ -123,17 +128,15 @@ def line_up(images, face_cascade, eye_cascade):
             pass
         
         # Merge the channels back together
-        lined_up_image = cv2.merge((b, g, r))
+        lined_up_image = cv2.merge((r, g, b))
         lined_up_images.append(lined_up_image)
-    
+
     return lined_up_images
 
 def crop_images(images):
     # Find the smallest image
     smallest_image = min(images, key=lambda x: x.shape[0]*x.shape[1])
     height, width = smallest_image.shape[:2]
-    print("Smallest image height:", height)
-    print("Smallest image width:", width)
     
     # Crop all images to the size of the smallest image
     cropped_images = []
@@ -145,20 +148,17 @@ def crop_images(images):
             cropped_images.append(cropped)
 
         else:
-            print("Correct size, no trim")
             cropped_images.append(image)
     return cropped_images
 
 def print_dimensions(images):
     for image in images:
         height, width = image.shape[:2]
-        print("Image dimensions: {}x{}".format(width, height))
 
 def save_images(folder_path, images, file_extension = 'jpg'):
     for i, image in enumerate(images):
         file_name = os.path.join(folder_path, str(i) + '.' + file_extension)
         cv2.imwrite(file_name, image)
-        print("Image {} saved successfully to {}".format(i, file_name))
 
 if __name__ == '__main__':
     # Create the argument parser
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     images = []
 
     # Iterate through all the images in the folder
-    for image_name in os.listdir(args.input_folder):
+    for image_name in sorted(os.listdir(args.input_folder)):
         # Load the image
         image = cv2.imread(os.path.join(args.input_folder, image_name))
         images.append(image)

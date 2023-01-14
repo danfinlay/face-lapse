@@ -8,36 +8,20 @@ from PIL import Image
 
 def align_pupils(image, face_cascade, eye_cascade):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.equalizeHist(gray)
     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-    if len(faces) > 0:
-        (x, y, w, h) = faces[0]
-        # Get the face ROI
-        face_roi = image[y:y+h, x:x+w]
-        gray_roi = cv2.cvtColor(face_roi, cv2.COLOR_BGR2GRAY)
-        gray_roi = cv2.equalizeHist(gray_roi)
-        eyes = eye_cascade.detectMultiScale(gray_roi)
+    for (x, y, w, h) in faces:
+        roi_gray = gray[y:y+h, x:x+w]
+        roi_color = image[y:y+h, x:x+w]
+        eyes = eye_cascade.detectMultiScale(roi_gray)
         if len(eyes) == 2:
-            left_eye = eyes[0]
-            right_eye = eyes[1]
-            if left_eye[0] > right_eye[0]:
-                left_eye, right_eye = right_eye, left_eye
-
-            # Get the center of the eyes
-            left_eye_center = (left_eye[0] + left_eye[2] // 2, left_eye[1] + left_eye[3] // 2)
-            right_eye_center = (right_eye[0] + right_eye[2] // 2, right_eye[1] + right_eye[3] // 2)
-
-            # Get the angle between the eyes
-            dy = right_eye_center[1] - left_eye_center[1]
-            dx = right_eye_center[0] - left_eye_center[0]
-            angle = math.atan2(dy, dx) * 180.0 / math.pi
-
-            # Get the rotation matrix
+            left_eye = eyes[0] if eyes[0][0] < eyes[1][0] else eyes[1]
+            right_eye = eyes[1] if eyes[0][0] < eyes[1][0] else eyes[0]
+            left_eye_center = (x + left_eye[0] + int(left_eye[2]/2), y + left_eye[1] + int(left_eye[3]/2))
+            right_eye_center = (x + right_eye[0] + int(right_eye[2]/2), y + right_eye[1] + int(right_eye[3]/2))
+            angle = np.arctan((right_eye_center[1] - left_eye_center[1]) / (right_eye_center[0] - left_eye_center[0])) * 180 / np.pi
             rot_mat = cv2.getRotationMatrix2D(left_eye_center, angle, 1.0)
-
-            # Rotate the image
-            result = cv2.warpAffine(face_roi, rot_mat, (face_roi.shape[1], face_roi.shape[0]), flags=cv2.INTER_LINEAR)
-            face_roi = result
+            image = cv2.warpAffine(image, rot_mat, (image.shape[1], image.shape[0]))
+    return image
 
 if __name__ == '__main__':
     # Create the argument parser
@@ -60,7 +44,7 @@ if __name__ == '__main__':
     images = []
     max_width = 0
     max_height = 0
-    
+
     # Iterate through all the images in the folder
     for image_name in os.listdir(args.input_folder):
         # Load the image

@@ -24,6 +24,7 @@ Requires a number of modules, you'll need to install them how you like, I'm not 
 
 ## Usage
 
+```
 python src/face-lapse.py -h
 usage: face-lapse.py [-h] -i INPUT_FOLDER -c OPENCV_FOLDER -v VIDEO_OUTPUT
                      [-f FRAMES_PER_SECOND] [-o OUTPUT_FOLDER]
@@ -40,3 +41,4 @@ options:
                         Number of seconds per picture in the output video
   -o OUTPUT_FOLDER, --output_folder OUTPUT_FOLDER
                         Path to save processed files in
+```

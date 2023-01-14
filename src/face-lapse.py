@@ -71,7 +71,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Load the face and eye detection cascades
-    cascades_root = args._opencv_folder + '/data/haarcascades/'
+    cascades_root = args.opencv_folder + '/data/haarcascades/'
     face_cascade = cv2.CascadeClassifier(cascades_root + 'haarcascade_frontalface_default.xml')
     eye_cascade = cv2.CascadeClassifier(cascades_root + 'haarcascade_eye.xml')
     images = []

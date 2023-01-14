@@ -9,18 +9,18 @@ from PIL import Image
 def align_pupils(image, face_cascade, eye_cascade):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-    for (x, y, w, h) in faces:
-        roi_gray = gray[y:y+h, x:x+w]
-        roi_color = image[y:y+h, x:x+w]
-        eyes = eye_cascade.detectMultiScale(roi_gray)
-        if len(eyes) == 2:
-            left_eye = eyes[0] if eyes[0][0] < eyes[1][0] else eyes[1]
-            right_eye = eyes[1] if eyes[0][0] < eyes[1][0] else eyes[0]
-            left_eye_center = (x + left_eye[0] + int(left_eye[2]/2), y + left_eye[1] + int(left_eye[3]/2))
-            right_eye_center = (x + right_eye[0] + int(right_eye[2]/2), y + right_eye[1] + int(right_eye[3]/2))
-            angle = np.arctan((right_eye_center[1] - left_eye_center[1]) / (right_eye_center[0] - left_eye_center[0])) * 180 / np.pi
-            rot_mat = cv2.getRotationMatrix2D((left_eye_center[0], left_eye_center[1]), angle, 1.0)
-            image = cv2.warpAffine(image, rot_mat, (image.shape[1], image.shape[0]))
+    (x, y, w, h) = faces[0]
+    roi_gray = gray[y:y+h, x:x+w]
+    roi_color = image[y:y+h, x:x+w]
+    eyes = eye_cascade.detectMultiScale(roi_gray)
+    if len(eyes) == 2:
+        left_eye = eyes[0] if eyes[0][0] < eyes[1][0] else eyes[1]
+        right_eye = eyes[1] if eyes[0][0] < eyes[1][0] else eyes[0]
+        left_eye_center = (x + left_eye[0] + int(left_eye[2]/2), y + left_eye[1] + int(left_eye[3]/2))
+        right_eye_center = (x + right_eye[0] + int(right_eye[2]/2), y + right_eye[1] + int(right_eye[3]/2))
+        angle = np.arctan((right_eye_center[1] - left_eye_center[1]) / (right_eye_center[0] - left_eye_center[0])) * 180 / np.pi
+        rot_mat = cv2.getRotationMatrix2D((left_eye_center[0], left_eye_center[1]), angle, 1.0)
+        image = cv2.warpAffine(image, rot_mat, (image.shape[1], image.shape[0]))
     return image
 
 if __name__ == '__main__':

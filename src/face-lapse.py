@@ -19,7 +19,8 @@ def align_pupils(image, face_cascade, eye_cascade):
             left_eye_center = (x + left_eye[0] + int(left_eye[2]/2), y + left_eye[1] + int(left_eye[3]/2))
             right_eye_center = (x + right_eye[0] + int(right_eye[2]/2), y + right_eye[1] + int(right_eye[3]/2))
             angle = np.arctan((right_eye_center[1] - left_eye_center[1]) / (right_eye_center[0] - left_eye_center[0])) * 180 / np.pi
-            rot_mat = cv2.getRotationMatrix2D(left_eye_center, angle, 1.0)
+            left_eye_center_float = (left_eye_center[0], left_eye_center[1])
+            rot_mat = cv2.getRotationMatrix2D(left_eye_center_float, angle, 1.0)
             image = cv2.warpAffine(image, rot_mat, (image.shape[1], image.shape[0]))
     return image
 
